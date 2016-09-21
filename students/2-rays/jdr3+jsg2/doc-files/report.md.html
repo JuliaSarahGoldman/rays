@@ -1,0 +1,164 @@
+**Lab 1: Meshes**
+**Julia Goldman**
+
+Algorithms
+================================
+This program need algorithms for two important purposes: generating points,
+and generating faces. When generating points in a circle, as long as one knows the number of points one wants and the radius one wants the points to appear at (and the height), one can simply use the equation $$P_i = r \cdot \left(-\sin \theta_i, y, \cos \theta_i \right),$$ where $$\theta_i = \frac{2 \pi i}{n}.$$ For a heightfield, on the other hand, one wants a field of points, one for each pixel. To do this, one can take the color value at each pixel, average the red, green, and blue values to get a single number, and us ethis (multiplied by a constant) for the height. The pixel's coordinates become the x,y coordinates (again, multiplied by a constant). 
+
+Then, one needs to connect the points. For the cylinder or the glass, one is connecting vertices arranged in circluar layers, or rings. One can choose a ring to start at, and a vertex in that ring, and connect that vertex to a vertex next to it and the two directly above (or below) it and its neighbor (in counterclockwise order). One does this for every vertex in the ring, and then moves on to the next ring, until every vertex is connected.
+
+i iterates in the number of rings, j in the number of "slices" (sides per ring)
+
+************************************************************
+* Upper Ring                                               *
+*   i*slices + j              (i+1)*slices + j             *
+*   +------------------------+                             *
+*   |                        |                             *
+*   |                        |                             *
+*   +------------------------+                             *
+*   i*slices + (j+1)%slices   (i+1)*slices + (j+1)%slices  *
+* Lower Ring                                               *
+*                                                          *
+************************************************************
+
+For the heightfield, start in a corner, and connect that vertex to the vertices to its right, beneath it, and beneath it to the right in a counterclockwise order, and then do the same for each vertex in the row,
+and the same for every other row.
+
+i iterates in the width of the image, j in the hieght
+
+************************************************************
+* Top Row                                                  *
+*   j + i*height              j + (i+1)*height             *
+*   +------------------------+                             *
+*   |                        |                             *
+*   |                        |                             *
+*   +------------------------+                             *
+*   j+1 + i*height              j+1 + (i+1)*height         *
+* Bottom Row                                               *
+*                                                          *
+************************************************************
+
+The only real difference is that one does not mod, because rows of a heightfield do not form rings.
+
+Implementation Design
+================================
+
+I manually created an OFF file for the cube in order to understand how OFF files work. Then, I created the cylinder with OFF file with a function [makeCylinder](class_app.html#a39b68f1117a31c5080e657e80e2512e6), that created the vertices by iterating twice around a circle of a given radius at two different heights. Faces on the sides were created by iterating through teh vertices in counterclockwise order. The top and bottom were created by making an n-gone, depending on a specified number of slices, of the top vertices and the bottom vertices. A cylinder or glass is essentially a series of rings, each of which has a radius and a height. Therefore, one needs to be able to take in an array of tuples (or in my case, actually two separate arrays of floats, which conceptually the same), containing an array and a height for each in ring in the order one wants them connected. Thus, for my [glass](class_app.html#a6728f0c588c36908b17a4a3bc2a4bdab), and for the elements of my custom scene, the [fountain pieces](class_app.html#a8c408acbfdd90f6d30eb24c67746c5c5), [trees](class_app.html#af85ee281da327b25bccd33a8bbe43833), and [water](class_app.html#a49607f7a36691096f4af3ebe6b4ef16e), I created a [function](class_app.html#ade5f8544431c3bfc62b693533967b1fc) that takes in such arrays. It creates the vertices for each ring in the manner of the cylinder, and iterates through the rings, connecting each ring with the vertices of the ring after it in the array. I manually chose the points for these arrays.
+
+Results
+================================
+Cube:
+
+![A 1x1 cube](cube.jpg)
+
+![Another Angle](cube2.jpg)
+
+Cylinder:
+
+![Cylinder](cylinder.jpg)
+
+![Cylinder with Mesh](c_mesh.jpg)
+
+Heightfield:
+
+![Flower](mornglor.png)
+
+![Heightfield of Flower](heightfield.jpg)
+
+![Heightfield with Mesh](h_mesh.jpg)
+
+![Close up](h_closeMesh.jpg)
+
+Cup:
+
+![Cup](cup2.jpg)
+
+![Cup with Mesh](g_mesh.jpg)
+
+
+My Demo
+================================
+Picture:
+
+![](fountain.jpg)
+
+![](f_mesh.jpg)
+
+![](f2.jpg)
+
+![](f_mesh2.jpg)
+
+![](f3.jpg)
+
+![](f_mesh3.jpg)
+
+![](f4.jpg)
+
+![](f_mesh4.jpg)
+
+
+
+For my scene, I created a fountain. A fountain is essentially a series of wide cups stacked on top of each other. Thus, I sketched a fountain base on paper and calculated the necessary radii and heights, and used my tube generating code to create an OFF file for that fountain base. Then, in my scene file I created models for tiers of the fountain of different sizes, and then stacked them. My water is also essentially a cup, as are the trees, while the ground is a squashed cube.
+
+Questions
+================================
+1. One can use the concept of a virtual image to fake reflections of the mountains. That is, when one actually looks into a reflective surface, objects appear to be a the same distance from the surface in the reflection as they are from the surface in real life. As such, one can place a mirrored copy of the object behind the "reflective" surface at an equal distance behind the surface as thr actual object is in front of it , and the eye will be tricked.
+2. Triangle meshes are preferred because of the special properties of triangles. A triangle is a simplex, meaning that any polygon can be tesselated into triangles, so anything that can be modeled with polygons can be modeled just as accuarately with triangles. Also, triangles are always planar and convex, which makes it easier to model their behavior.
+3. A more efficient tesselation would use fewer triangles in flat areas, and more triangles in hilly ones. One way to do this is greedy insertion algorithm, which first uses a triangulation with few triangles and a lot of error, and then refines the mesh by finding the spots with most error and inserting more vertices, until the mesh is as refined as one wants to be. Source: https://www.cs.cmu.edu/~./garland/scape/scape.pdf
+
+Reflections
+================================
+
+-Cylinders, cubes, cups, and trees are all topologically spheres.
+
+-Surfaces can be approximated using triangles (although in some, but not all, cases, quadrilaterals will do.)
+
+-Obediance to the right hand rule is important.
+
+-Having variables (rather than hard coded numbers) from the beginning eases the process of generalizing solutions.
+
+-Sometimes, a technique that works in a specific case cannot be generalized.
+
+-It is important to carefully check all simple math right when one does it to avoid mysterious problems later.
+
+-It is best to test one's work on a wide variety of inputs.
+
+
+
+Workflow
+================================
+
+Task | Description | Planned Time (h) | Actual Time (h)
+-----|-------------|------------------|----------------
+Report Draft | Markdeep document with headings and place for text. | .2 | .2|
+cube.off data file draft | file formatted like a data file. | .2 | 1.5 |
+makeCylinder draft | Empty Function | .2 | 1.5 |
+heightfield procedure draft | Empty Function | .2 | 1.3 |
+glass procedure draft | Empty Function | .2 | .1 |
+demo draft | create needed functions and files | .2 | .2|
+cube.off MVP | functional data-file | .4 | .5|
+makeCylinder MVP | Cylinder appears, but can be slightly buggy | .75 | .2 |
+heightfield MVP | Some sort of heightfield shows up | .75 | 1 |
+glass MVP | Make arbitrary solids of revolution | 1 | 2.0 |
+Cylinder Interface | Allow user to change parameters of cylinder | .4 | .5 |
+heightfield interface | allow to user to choose file and scale | .2 | .3 |
+glass interface | Allow user to change slices | .2 | .1|
+demo MVP | add existing elements to scene | .5 | 1.75|
+Report MVP | Write something in every section, put in a few pictures of current progress, attempt answers to questions | 1 | .6
+cube.off polish | Fix anything you dislike about cube | .25 | 0|
+makeCylinder polish | fix bugs | .25 | 0 |
+heightfield polish | make heightfield look cool | .5 | 0|
+glass polish | make look interesting, add more features to interface | .5 |
+demo polish | Make look as interesting as possible | 1.5 | 1.0 |
+report polish | Answer rest of question, add pretty pictures, add more detailed descriptions, reflect, etc | 1.5 | 2.0|
+
+6.4 hours for required parts
+4.5 hours for polishing
+
+Actually:
+11.75 required.
+3.5 extra.
+
+<!-- Markdeep: -->
+<style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace;}</style><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
