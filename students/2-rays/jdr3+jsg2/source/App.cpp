@@ -251,69 +251,29 @@ void App::makeGUI() {
     debugWindow->setVisible(true);
     developerWindow->videoRecordDialog->setEnabled(true);
 
-    /*Begin commenting out to remove pane here
-    GuiPane* glassPane = debugPane->addPane("Chalice");
-    glassPane->setNewChildSize(240);
-    glassPane->addNumberBox("Slices", &m_slices,"m", GuiTheme::NO_SLIDER, 0, 100)->setUnitsSize(1);
-    glassPane->addButton("Generate", [this](){
-        drawMessage("Chalice is loading.");
-        makeGlass(m_slices);
-        ArticulatedModel::clearCache();
-        loadScene(developerWindow->sceneEditorWindow->selectedSceneName());
-
-    });
-
-
-    GuiPane* cylinderPane = debugPane->addPane("Cylinder");
-    cylinderPane->setNewChildSize(240);
-    cylinderPane->addNumberBox("Radius", &m_radius,"m", GuiTheme::NO_SLIDER, 0.0f, 100.0f)->setUnitsSize(.2);
-    cylinderPane->addNumberBox("Height", &m_height,"m", GuiTheme::NO_SLIDER, 0.0f, 100.0f)->setUnitsSize(1);
-    cylinderPane->addButton("Generate", [this](){
-        drawMessage("Cylinder is loading.");
-        makeCylinder(m_radius, m_height, 40);
-        ArticulatedModel::clearCache();
-        loadScene(developerWindow->sceneEditorWindow->selectedSceneName());
-
-    });
-    
-    GuiPane* heightfieldPane = debugPane->addPane("Heightfield");
+    GuiPane* rayTracePane = debugPane->addPane("Ray Trace");
  
-    heightfieldPane->setNewChildSize(240);
-    heightfieldPane->addNumberBox("Max Y", &m_heightfieldYScale, "m", GuiTheme::LOG_SLIDER, 0.0f, 100.0f)->setUnitsSize(30);
-    heightfieldPane->addNumberBox("XZ Scale", &m_heightfieldXZScale, "m", GuiTheme::LOG_SLIDER, 0.001f, 10.0f)->setUnitsSize(30);
+    rayTracePane->setNewChildSize(240);
+    String temp("1x1");
+    Array<String> resolutionMenu(temp);
+    temp = "320x200";
+    resolutionMenu.append(temp);
+    temp = "640x400";
+    resolutionMenu.append(temp);
+    rayTracePane->addDropDownList("Resolution", resolutionMenu);
+    
+    rayTracePane->beginRow(); {
+    rayTracePane->addCheckBox("Fixed Primitives",  &m_hasFixedPrimitives, GuiTheme::NORMAL_CHECK_BOX_STYLE);
+    rayTracePane->addCheckBox("Multithreading",  &m_isMultithreaded, GuiTheme::NORMAL_CHECK_BOX_STYLE);
+    } rayTracePane->endRow();
 
+    
+    rayTracePane->addNumberBox("Indirect Rays", &m_indirectRaysPPx, "per px", GuiTheme::NO_SLIDER, 0, 2048)->setUnitsSize(100);
 
-    heightfieldPane->beginRow(); {
-        heightfieldPane->addTextBox("Input Image", &m_heightfieldSource)->setWidth(210);
-        heightfieldPane->addButton("...", [this](){
-            FileDialog::getFilename(m_heightfieldSource, "png", false);
-        })->setWidth(30);
-    } heightfieldPane->endRow();
-
-    heightfieldPane->addButton("Generate", [this](){
-        drawMessage("Heightfield is loading");
-        shared_ptr<Image> image;
+    rayTracePane->addButton("Render", [this](){
+        drawMessage("Ray Tracer is loading");
         try{
-            image = Image::fromFile(m_heightfieldSource);
-            TextOutput file("../data-files/model/heightfield.off");
-            file.printf(STR(OFF\n%d %d 1\n), image->width()*image->height(), (image->width()-1)*(image->height()-1));
-            Color3 color = Color3();
-            for (int i = 0; i < image->width(); ++i){
-                for (int j = 0; j< image->height(); ++j){
-                    const Point2int32 point = Point2int32(i,j);
-                    image->get(point, color);
-                    float grayValue = color.average();
-                    file.printf("%f %f %f\n", ((float)j)*m_heightfieldXZScale, grayValue*m_heightfieldYScale, ((float) i)*m_heightfieldXZScale);
-                }
-            }
-
-            for (int i = 0; i < image->width()-1; ++i){
-                for (int j = 0; j < image->height()-1; ++j){
-                    file.printf("4 %d %d %d %d\n", j + i*image->height(), j + (i+1)*image->height(), j+1 + (i+1)*image->height(), j+1 + i*image->height());
-                }
-            }
-            file.commit();
-
+            
             ArticulatedModel::clearCache();
             loadScene(developerWindow->sceneEditorWindow->selectedSceneName());
         }catch(...){
@@ -322,16 +282,14 @@ void App::makeGUI() {
     });
 
 
-
     GuiPane* infoPane = debugPane->addPane("Info", GuiTheme::ORNATE_PANE_STYLE);
     
     // Example of how to add debugging controls
-    infoPane->addLabel("You can add GUI controls");
-    infoPane->addLabel("in App::onInit().");
+    infoPane->addLabel("Click the button below to Exit.");
     infoPane->addButton("Exit", [this]() { m_endProgram = true; });
     infoPane->pack();
 
-    End commenting to remove pane here*/
+    //End commenting to remove pane here
 
     // More examples of debugging GUI controls:
     // debugPane->addCheckBox("Use explicit checking", &explicitCheck);
@@ -466,3 +424,4 @@ void App::onCleanup() {
     // Called after the application loop ends.  Place a majority of cleanup code
     // here instead of in the constructor so that exceptions can be caught.
 }
+
