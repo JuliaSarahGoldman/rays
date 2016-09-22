@@ -1,6 +1,6 @@
 /** \file App.cpp */
 #include "App.h"
-
+#include "RayTracer.h"
 // Tells C++ to invoke command-line main() function even on OS X and Win32.
 G3D_START_AT_MAIN();
 
@@ -272,8 +272,11 @@ void App::makeGUI() {
 
     rayTracePane->addButton("Render", [this](){
         drawMessage("Ray Tracer is loading");
+        shared_ptr<G3D::Image> image;
         try{
-            
+            image = Image::fromFile("cube.png");
+            RayTracer tracer = RayTracer();
+            tracer.rayTrace(scene(), scene()->defaultCamera(), image);
             ArticulatedModel::clearCache();
             loadScene(developerWindow->sceneEditorWindow->selectedSceneName());
         }catch(...){
