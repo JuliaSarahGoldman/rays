@@ -10,6 +10,10 @@
 /** \brief Application framework. */
 class App : public GApp {
 protected:
+
+    bool m_hasFixedPrimitives;
+    bool m_isMultithreaded;
+    int m_indirectRaysPPx;
     float m_heightfieldYScale;
     float m_heightfieldXZScale;
     float m_radius;
@@ -45,3 +49,4 @@ public:
     virtual void onUserInput(UserInput* ui) override;
     virtual void onCleanup() override;
 };
+
