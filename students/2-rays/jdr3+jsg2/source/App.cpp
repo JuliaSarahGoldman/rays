@@ -274,11 +274,12 @@ void App::makeGUI() {
         drawMessage("Ray Tracer is loading");
         shared_ptr<G3D::Image> image;
         try{
-            image = Image::fromFile("cube.png");
+            image = Image::create(30, 30, ImageFormat::RGB32F());
             RayTracer tracer = RayTracer();
             tracer.rayTrace(scene(), scene()->defaultCamera(), image);
+            show(image);
             ArticulatedModel::clearCache();
-            loadScene(developerWindow->sceneEditorWindow->selectedSceneName());
+            //loadScene(developerWindow->sceneEditorWindow->selectedSceneName());
         }catch(...){
             msgBox("Unable to load the image.", m_heightfieldSource);
         }
