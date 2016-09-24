@@ -4,12 +4,11 @@
 // Will calculate the radiance for a single ray of light by finding the intersection and recursively 
 // scattering light
 Radiance3 RayTracer::measureLight(const shared_ptr<Scene>& scene, const Ray ray, int numScatters, const TriTree& triangles, const CPUVertexArray& vertices){
-    Point3 P = ray.origin();
-    Vector3 w = ray.direction();
+  
     shared_ptr<Surfel> surfel = triangles.intersectRay(ray);
     Array<shared_ptr<Light>> lightArray = scene->lightingEnvironment().lightArray;
 
-    if (surfel) return shade(ray, surfel, lightArray);
+    if (surfel) return 1000.0f*shade(ray, surfel, lightArray);
     return Radiance3(1,0,0);
     // if (findIntersection(surfel, ray, triangles, vertices)) return Radiance3(1,1,1);
     //else return Radiance3(0,0,0);
@@ -47,7 +46,7 @@ void RayTracer::rayTrace(const shared_ptr<Scene>& scene, const shared_ptr<Camera
             float imWidth = image->width();
             float imHeight = image->height();
             Rect2D rect2D(Vector2(imWidth-1, imHeight-1));
-            Ray ray = cam->worldRay(x,y,rect2D);
+            Ray ray = cam->worldRay(x+.5f,y+.5f,rect2D); //Maybe add .5 to x and y?
 
             Radiance3 radiance = measureLight(scene, ray, 2, sceneTris, vertices);
             image->set(Point2int32(x,y), radiance);
@@ -84,22 +83,31 @@ bool RayTracer::findTriangleIntersection(const shared_ptr<Surfel>& surfel, const
 }
 
 Radiance3 RayTracer::shade(const Ray ray, const shared_ptr<Surfel>& surfel, const Array<shared_ptr<Light>>& lights){
-    Radiance3 L(surfel->emittedRadiance(ray.direction()));
-    Point3 P = ray.origin();
+    Point3 P = ray.origin()+ray.direction()*abs(surfel->position-ray.origin());
     Vector3 w = ray.direction();
-
+    Radiance3 surfrad = surfel->emittedRadiance(P); 
+    Radiance3 L(surfel->emittedRadiance(P));
+    float rVal(L.r);
+    float gVal(L.g);
+    float bVal(L.b);
     for(int i(0); i < lights.size(); ++i){
         Light  light = *lights[i];
         Vector3 lightVector = light.position().xzy() - P;
         float disToLight = lightVector.length();
         Vector3 w_i = lightVector/disToLight;
         if(light.inFieldOfView(surfel->position)){ 
-            const Radiance3& L_i(light.emittedPower()/(4*pif()*disToLight*disToLight));
+            const Radiance3 L_i(light.emittedPower()/(4*pif()*disToLight*disToLight));
             float dotProd = abs(w_i.dot(surfel->shadingNormal));
-            Radiance3 bir = light.biradiance(-1 * surfel->position);
-            Radiance3 surbi = surfel->finiteScatteringDensity(w_i, -1*w);
-            L+= L_i * abs(w_i.dot(surfel->shadingNormal)) * light.biradiance(-1*surfel->position) * surfel->finiteScatteringDensity(w_i, -1 * w);
+            Radiance3 bir = light.biradiance(-1*surfel->position);
+            Radiance3 surbi = surfel->finiteScatteringDensity(w_i, -1 * w);
+            Radiance3 product = L_i * dotProd;
+            product = product * bir;
+            product = product * surbi;
+            rVal += product.r;
+            gVal += product.g;
+            bVal += product.b;
         }
     }
-    return L;
+    //return Radiance3(rVal, gVal, bVal);
+    return Radiance3(rVal, gVal, bVal);
 }

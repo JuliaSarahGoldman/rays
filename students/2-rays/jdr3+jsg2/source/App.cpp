@@ -274,7 +274,7 @@ void App::makeGUI() {
         drawMessage("Ray Tracer is loading");
         shared_ptr<G3D::Image> image;
         try{
-            image = Image::create(30, 30, ImageFormat::RGB32F());
+            image = Image::create(100, 90, ImageFormat::RGB32F());
             RayTracer tracer = RayTracer();
             tracer.rayTrace(scene(), scene()->defaultCamera(), image);
             show(image);
