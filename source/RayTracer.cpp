@@ -1,13 +1,37 @@
 /** \file RayTracer.cpp */
 #include "RayTracer.h"
 
+// Iterates through each pixel, creating a ray for each one from the pixel to the camera aperature, and using measureLight to find the radiance for each pixel
+void RayTracer::rayTrace(const shared_ptr<Scene>& scene, const shared_ptr<Camera>& cam, const shared_ptr<Image>& image){
+    
+    // Get all the surfaces in a scene
+    Array<shared_ptr<Surface>> sceneSurfaces;
+    scene->onPose(sceneSurfaces);
+    
+    // Get all the triangles in a scene from all the surfaces
+
+    m_triangles->setContents(sceneSurfaces);
+    //Now iterate through all of the pixels
+    for(int x(0); x < image->width();++x){
+        for(int y(0); y<image->height();++y){
+            float imWidth = image->width();
+            float imHeight = image->height();
+            Rect2D rect2D(Vector2(imWidth-1, imHeight-1));
+            Ray ray = cam->worldRay(x+.5f,y+.5f,rect2D); //Maybe add .5 to x and y?
+
+            Radiance3 radiance = measureLight(scene, ray, 2);
+            image->set(Point2int32(x,y), radiance);
+        }
+    }
+}
+
 // Will calculate the radiance for a single ray of light by finding the intersection and recursively 
 // scattering light
-Radiance3 RayTracer::measureLight(const shared_ptr<Scene>& scene, const Ray ray, int numScatters, const TriTree& triangles, const CPUVertexArray& vertices){
+Radiance3 RayTracer::measureLight(const shared_ptr<Scene>& scene, const Ray ray, int numScatters){
   
     //shared_ptr<Surfel> surfel = triangles.intersectRay(ray);
     shared_ptr<Surfel> surfel;
-    bool doesIntersect = findIntersection(surfel, ray, triangles, vertices);
+    bool doesIntersect = findIntersection(surfel, ray);
     Array<shared_ptr<Light>> lightArray = scene->lightingEnvironment().lightArray;
 
     if (doesIntersect) return shade(ray, surfel, lightArray);
@@ -18,7 +42,7 @@ Radiance3 RayTracer::measureLight(const shared_ptr<Scene>& scene, const Ray ray,
 
 /*Will iterate through a TriTree, calling findTriangleIntersection for each Tri. If there are primitives, it will call findSphereIntersection for them. 
 It should use the surfel it hits first (the one with the shortest distance from the camera.)*/
-bool RayTracer::findIntersection(shared_ptr<Surfel>& surfel, const Ray ray, const TriTree& triangles, const CPUVertexArray& vertices){
+bool RayTracer::findIntersection(shared_ptr<Surfel>& surfel, const Ray ray){
     Point3 P = ray.origin();
     Vector3 w = ray.direction();
     
@@ -29,8 +53,8 @@ bool RayTracer::findIntersection(shared_ptr<Surfel>& surfel, const Ray ray, cons
     TriTree::Hit tempHit = TriTree::Hit();
     TriTree::Hit hit = TriTree::Hit();
 
-    for (int i(0); i < triangles.size(); ++i) {
-        bool intersects = findTriangleIntersection(ray, triangles[i], vertices, t, b, tempHit);
+    for (int i(0); i < m_triangles->size(); ++i) {
+        bool intersects = findTriangleIntersection(ray, m_triangles->operator[](i), m_triangles->vertexArray(), t, b, tempHit);
         if (intersects){
             if (t < min){
                 min = t;
@@ -40,45 +64,23 @@ bool RayTracer::findIntersection(shared_ptr<Surfel>& surfel, const Ray ray, cons
                 hit = tempHit;
                 hit.triIndex = i;
                 hit.distance = t;
-            }
+                hit.u = b[0];
+                hit.v = b[1];
+;            }
         }
     }
     if (min == INFINITY){
         return false;
     }
     
-    surfel = triangles.sample(hit);
+    surfel = m_triangles->sample(hit);
 
-    //return triangles[hit.triIndex].intersectionAlphaTest(vertices, u, v, 1.0f);
+    return m_triangles->operator[](hit.triIndex).intersectionAlphaTest(m_triangles->vertexArray(), hit.u, hit.v, 1.0f);
     
     return true;
     
 }
 
-// Iterates through each pixel, creating a ray for each one from the pixel to the camera aperature, and using measureLight to find the radiance for each pixel
-void RayTracer::rayTrace(const shared_ptr<Scene>& scene, const shared_ptr<Camera>& cam, const shared_ptr<Image>& image){
-    
-    // Get all the surfaces in a scene
-    Array<shared_ptr<Surface>> sceneSurfaces;
-    scene->onPose(sceneSurfaces);
-    
-    // Get all the triangles in a scene from all the surfaces
-    TriTree sceneTris;
-    sceneTris.setContents(sceneSurfaces);
-    CPUVertexArray vertices(sceneTris.vertexArray());
-    //Now iterate through all of the pixels
-    for(int x(0); x < image->width();++x){
-        for(int y(0); y<image->height();++y){
-            float imWidth = image->width();
-            float imHeight = image->height();
-            Rect2D rect2D(Vector2(imWidth-1, imHeight-1));
-            Ray ray = cam->worldRay(x+.5f,y+.5f,rect2D); //Maybe add .5 to x and y?
-
-            Radiance3 radiance = measureLight(scene, ray, 2, sceneTris, vertices);
-            image->set(Point2int32(x,y), radiance);
-        }
-    }
-}
 
 // Find the interesection of a ray to a sphere.
 bool RayTracer::findSphereIntersection(const shared_ptr<Surfel>& surfel, const Ray ray, const Point3 center, const float radius){
@@ -167,11 +169,33 @@ Radiance3 RayTracer::shade(const Ray ray, const shared_ptr<Surfel>& surfel, cons
         const shared_ptr<Light> light(lights[i]);
         const Point3& Y = light->position().xyz();
 
-        const Vector3& w_i = (Y-X).direction();
-        Biradiance3& Bi = light->biradiance(X);
+        if (isVisible(X,Y)){
+            const Vector3& w_i = (Y-X).direction();
+            Biradiance3& Bi = light->biradiance(X);
 
-        const Color3& f = surfel->finiteScatteringDensity(w_i,-1*ray.direction());
-        L+=Bi * f * abs(w_i.dot(n));
+            const Color3& f = surfel->finiteScatteringDensity(w_i,-1*ray.direction());
+            L+=Bi * f * abs(w_i.dot(n));
+        }
     }
     return L;
 }
+
+bool RayTracer::isVisible(Point3 X, Point3 Y){
+    Point3 origin (Y + FLT_EPSILON*(X-Y));
+    Vector3 direction = (X-Y).unit();
+    Ray newRay(origin, direction);
+    shared_ptr<Surfel> surfel;
+    bool doesIntersect = findIntersection(surfel, newRay);
+    if(doesIntersect)
+        return (abs(surfel->position.x-X.x)<0.001f && abs(surfel->position.y-X.y) < 0.01f && abs(surfel->position.z - X.z) < 0.001f);
+    return false;
+}
+
+RayTracer::RayTracer(){
+    m_triangles = shared_ptr<TriTree>(new TriTree());
+}
+
+RayTracer::~RayTracer(){
+   // delete &m_triangles;
+}
+
