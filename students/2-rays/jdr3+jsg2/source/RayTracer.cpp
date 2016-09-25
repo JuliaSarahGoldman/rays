@@ -161,7 +161,7 @@ bool RayTracer::findTriangleIntersection(const Ray ray, const Tri triangle, cons
 }*/
 
 Radiance3 RayTracer::shade(const Ray ray, const shared_ptr<Surfel>& surfel, const Array<shared_ptr<Light>>& lights){
-    Radiance3 L = surfel->emittedRadiance(-1*ray.direction());
+    Radiance3 L = surfel->reflectivity(Random::common())*0.05f; //surfel->emittedRadiance(-1*ray.direction());
     const Point3& X = surfel->position;
     const Vector3& n = surfel->shadingNormal;
 
