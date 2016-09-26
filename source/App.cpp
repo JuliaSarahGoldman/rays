@@ -254,31 +254,37 @@ void App::makeGUI() {
     GuiPane* rayTracePane = debugPane->addPane("Ray Trace");
  
     rayTracePane->setNewChildSize(240);
-    String temp("1x1");
-    Array<String> resolutionMenu(temp);
+    GuiText temp("1x1");
+    Array<GuiText> resolutionMenu(temp);
     temp = "320x200";
     resolutionMenu.append(temp);
     temp = "640x400";
     resolutionMenu.append(temp);
-    rayTracePane->addDropDownList("Resolution", resolutionMenu);
-    
+    GuiDropDownList* list(rayTracePane->addDropDownList("Resolution", resolutionMenu));
+
     rayTracePane->beginRow(); {
     rayTracePane->addCheckBox("Fixed Primitives",  &m_hasFixedPrimitives, GuiTheme::NORMAL_CHECK_BOX_STYLE);
     rayTracePane->addCheckBox("Multithreading",  &m_isMultithreaded, GuiTheme::NORMAL_CHECK_BOX_STYLE);
     } rayTracePane->endRow();
 
-    
     rayTracePane->addNumberBox("Indirect Rays", &m_indirectRaysPPx, "per px", GuiTheme::LOG_SLIDER, 0, 2048)->setUnitsSize(100);
 
-    rayTracePane->addButton("Render", [this](){
+    rayTracePane->addButton("Render", [this, list, rayTracePane](){
         drawMessage("Ray Tracer is loading");
         shared_ptr<G3D::Image> image;
         try{
-            image = Image::create(200, 190, ImageFormat::RGB32F());
-            RayTracer tracer = RayTracer(m_isMultithreaded, m_indirectRaysPPx, m_hasFixedPrimitives);
-            tracer.rayTrace(scene(), scene()->defaultCamera(), image);
-            show(image);
+            if(!list->selectedIndex()) image = Image::create(1, 1, ImageFormat::RGB32F());
+            else if (list->selectedIndex() == 1) image = Image::create(320,200, ImageFormat::RGB32F());
+            else image = Image::create(640,400, ImageFormat::RGB32F());
+            
+            RayTracer tracer = RayTracer(scene(), m_isMultithreaded, m_indirectRaysPPx, m_hasFixedPrimitives);
+            Stopwatch watch("watch");
+            watch.tick();
+            tracer.rayTrace(scene(), activeCamera(), image);
+            watch.tock();
+            show(image, String(std::to_string(watch.smoothElapsedTime()) + " seconds"));
             ArticulatedModel::clearCache();
+            
             //loadScene(developerWindow->sceneEditorWindow->selectedSceneName());
         }catch(...){
             msgBox("Unable to load the image.", m_heightfieldSource);
