@@ -11,31 +11,56 @@ void RayTracer::rayTrace(const shared_ptr<Scene>& scene, const shared_ptr<Camera
     // Get all the triangles in a scene from all the surfaces
 
     m_triangles->setContents(sceneSurfaces);
-    //Now iterate through all of the pixels
-    for(int x(0); x < image->width();++x){
-        for(int y(0); y<image->height();++y){
-            float imWidth = image->width();
-            float imHeight = image->height();
-            Rect2D rect2D(Vector2(imWidth-1, imHeight-1));
-            Ray ray = cam->worldRay(x+.5f,y+.5f,rect2D); //Maybe add .5 to x and y?
-
-            Radiance3 radiance = measureLight(scene, ray, 2);
-            image->set(Point2int32(x,y), radiance);
+    
+    if(!m_isMultiThreaded){
+        float imWidth = image->width();
+        float imHeight = image->height();
+        Rect2D rect2D(Vector2(imWidth-1, imHeight-1));
+        //Now iterate through all of the pixels
+        for(int y(0); y < image->height();++y){
+            for(int x(0); x<image->width();++x){
+                Ray ray = cam->worldRay(x+.5f,y+.5f,rect2D); //Maybe add .5 to x and y?
+                Radiance3 radiance = measureLight(scene, ray, 2);
+                image->set(Point2int32(x,y), radiance);
+            }
         }
+    } else {
+        float imWidth = image->width();
+        float imHeight = image->height();
+        Rect2D rect2D(Vector2(imWidth-1, imHeight-1));
+        Thread::runConcurrently(Point2int32(0,0), Point2int32(image->width(), image->height()), [this, scene, cam, image, rect2D](Point2int32 vertex) -> void {
+            Ray ray = cam->worldRay(vertex.x +0.5f, vertex.y+0.5f, rect2D);
+            Radiance3 radiance = measureLight(scene,ray,2);
+            image->set(vertex, radiance);
+        }); 
     }
+
+
 }
 
 // Will calculate the radiance for a single ray of light by finding the intersection and recursively 
 // scattering light
 Radiance3 RayTracer::measureLight(const shared_ptr<Scene>& scene, const Ray ray, int numScatters){
-  
-    //shared_ptr<Surfel> surfel = triangles.intersectRay(ray);
+    if (numScatters <= 0){
+        return Radiance3(0,0,0);
+    }
+        //shared_ptr<Surfel> surfel = triangles.intersectRay(ray);
     shared_ptr<Surfel> surfel;
     bool doesIntersect = findIntersection(surfel, ray);
     Array<shared_ptr<Light>> lightArray = scene->lightingEnvironment().lightArray;
 
-    if (doesIntersect) return shade(ray, surfel, lightArray);
-    return Radiance3(1,0,0);
+    Radiance3 returnRadiance(0,0,0);
+    if (!doesIntersect){
+        return Radiance3(0,0,0);
+    }
+    returnRadiance  = shade(ray, surfel, lightArray);
+    for (int i(0); i < m_numRays; ++i){
+        Point3 check = surfel->position;
+        Ray otherRay(surfel->position + FLT_EPSILON*surfel->geometricNormal, Vector3::hemiRandom(surfel->shadingNormal));
+        returnRadiance += (measureLight(scene, otherRay, --numScatters)/m_numRays);
+    }
+    return returnRadiance;
+    
     // if (findIntersection(surfel, ray, triangles, vertices)) return Radiance3(1,1,1);
     //else return Radiance3(0,0,0);
 }   
@@ -69,13 +94,37 @@ bool RayTracer::findIntersection(shared_ptr<Surfel>& surfel, const Ray ray){
 ;            }
         }
     }
+
+    bool isCircle = false;
+    if (m_hasFixedPrimitives){
+        Point3 center(0,1,-.5);
+        float radius = .4f;
+        bool intersects = findSphereIntersection(ray, center, .4, t);
+        
+        if(intersects){
+            if (t<min){ 
+                isCircle = true;
+                min = t;
+                auto surf = std::make_shared<UniversalSurfel>();
+                surf->name = "analytical";
+                surf->position = Point3(ray.origin() + t*ray.direction());
+                surf->lambertianReflectivity = Color3(1.46f,.5f,1.47f);
+                surf->shadingNormal = (surf->position-center).unit();
+                surfel = surf;
+            }
+        }
+    }
     if (min == INFINITY){
         return false;
     }
     
-    surfel = m_triangles->sample(hit);
+    if (!isCircle){
+        surfel = m_triangles->sample(hit);
 
-    return m_triangles->operator[](hit.triIndex).intersectionAlphaTest(m_triangles->vertexArray(), hit.u, hit.v, 1.0f);
+
+    }
+
+    //return m_triangles->operator[](hit.triIndex).intersectionAlphaTest(m_triangles->vertexArray(), hit.u, hit.v, 1.0f);
     
     return true;
     
@@ -83,25 +132,29 @@ bool RayTracer::findIntersection(shared_ptr<Surfel>& surfel, const Ray ray){
 
 
 // Find the interesection of a ray to a sphere.
-bool RayTracer::findSphereIntersection(const shared_ptr<Surfel>& surfel, const Ray ray, const Point3 center, const float radius){
+bool RayTracer::findSphereIntersection(const Ray ray, const Point3 center, const float radius, float& t){
     Point3 P = ray.origin();
     Vector3 w = ray.direction();
 
+    float a = 1;
+    float b = 2*w.dot(P-center);
+    float c = ((P-center).dot(P-center) - radius * radius);
+
+    if((b*b-4*a*c)<0) return false;
+    
+    float posT((-b + sqrt(b*b-4*a*c))/(2*a));
+    float negT((-b + sqrt(b*b-4*a*c))/(2*a));
+   
+    if(posT<0 && negT< 0) return false;
+    else if(posT<0) t = negT; 
+    else if(negT<0) t = posT;
+    else t = min(posT,negT);
     return true;
 }
 
 // find the intersection of a ray to a triangle
 bool RayTracer::findTriangleIntersection(const Ray ray, const Tri triangle, const CPUVertexArray& vertices, float& t, float b[3], TriTree::Hit hit){
-    /*
-    Point3 P = ray.origin();
-    Vector3 w = ray.direction();
 
-    Vector3 e1 = triangle.e1(vertices);
-    Vector3 e2 = triangle.e2(vertices);
-    Vector3 vertexNormal(triangle.normal(vertices));
-    
-    const Vector3 q = w.cross(e2);
-    */
     const Point3& P = ray.origin();
     const Vector3& w(ray.direction());
     const Vector3& e1(triangle.e1(vertices));
@@ -131,37 +184,8 @@ bool RayTracer::findTriangleIntersection(const Ray ray, const Tri triangle, cons
 
 }
 
-/*Radiance3 RayTracer::shade(const Ray ray, const shared_ptr<Surfel>& surfel, const Array<shared_ptr<Light>>& lights){
-    Point3 P = ray.origin()+(.01*ray.direction()) + ray.direction()*abs(surfel->position-ray.origin()); 
-    Vector3 w = ray.direction();
-    Radiance3 L(surfel->emittedRadiance(P));
-    float rVal(L.r);
-    float gVal(L.g);
-    float bVal(L.b);
-    for(int i(0); i < lights.size(); ++i){
-        Light  light = *lights[i];
-        Vector3 lightVector = light.position().xzy() - P;
-        float disToLight = lightVector.length();
-        Vector3 w_i = lightVector.direction(); //lightVector/disToLight;
- //       if(light.inFieldOfView(surfel->position)){ 
-            //const Radiance3 L_i(light.emittedPower()/(4*pif()*disToLight*disToLight));
-            float dotProd = abs(w_i.dot(surfel->shadingNormal));
-            Radiance3 bir = light.biradiance(surfel->position);
-            Radiance3 surbi = surfel->finiteScatteringDensity(w_i, -1*w);
-            //Radiance3 product = L_i * dotProd;
-            //product = product * bir;
-            Radiance3 product = dotProd * bir * surbi;
-            rVal += product.r;
-            gVal += product.g;
-            bVal += product.b;
-//        }
-    }
-    //return Radiance3(rVal, gVal, bVal);
-    return Radiance3(rVal, gVal, bVal);
-}*/
-
 Radiance3 RayTracer::shade(const Ray ray, const shared_ptr<Surfel>& surfel, const Array<shared_ptr<Light>>& lights){
-    Radiance3 L = surfel->reflectivity(Random::common())*0.05f; //surfel->emittedRadiance(-1*ray.direction());
+    Radiance3 L = surfel->reflectivity(Random::threadCommon())*0.05f; //surfel->emittedRadiance(-1*ray.direction());
     const Point3& X = surfel->position;
     const Vector3& n = surfel->shadingNormal;
 
@@ -191,8 +215,11 @@ bool RayTracer::isVisible(Point3 X, Point3 Y){
     return false;
 }
 
-RayTracer::RayTracer(){
+RayTracer::RayTracer(bool isMultiThreaded, float numRays, bool hasFixedPrimitives){
     m_triangles = shared_ptr<TriTree>(new TriTree());
+    m_isMultiThreaded = isMultiThreaded;
+    m_numRays = numRays;
+    m_hasFixedPrimitives = hasFixedPrimitives;
 }
 
 RayTracer::~RayTracer(){
