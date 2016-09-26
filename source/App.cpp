@@ -267,7 +267,7 @@ void App::makeGUI() {
     rayTracePane->addCheckBox("Multithreading",  &m_isMultithreaded, GuiTheme::NORMAL_CHECK_BOX_STYLE);
     } rayTracePane->endRow();
 
-    rayTracePane->addSlider("Indirect Rays", &m_indirectRaysPPx, "per px", 0, 2048, GuiTheme::LOG_SLIDER)->setUnitsSize(100);
+    rayTracePane->addNumberBox("Indirect Rays", &m_indirectRaysPPx, " ppx", GuiTheme::LOG_SLIDER, 0, 2048) -> setUnitsSize(100);
 
     rayTracePane->addButton("Render", [this, list, rayTracePane](){
         drawMessage("Ray Tracer is loading");
@@ -282,7 +282,7 @@ void App::makeGUI() {
             watch.tick();
             tracer.rayTrace(scene(), activeCamera(), image);
             watch.tock();
-            debugPrintf(String(std::to_string(watch.smoothElapsedTime()) + " seconds"));
+            debugPrintf(String(std::to_string(watch.smoothElapsedTime()) + " seconds").c_str());
             show(image, String(std::to_string(watch.smoothElapsedTime()) + " seconds"));
             ArticulatedModel::clearCache();
             
