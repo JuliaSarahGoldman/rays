@@ -3,28 +3,24 @@
 
 // Iterates through each pixel, creating a ray for each one from the pixel to the camera aperature, and using measureLight to find the radiance for each pixel
 void RayTracer::rayTrace(const shared_ptr<Scene>& scene, const shared_ptr<Camera>& cam, const shared_ptr<Image>& image){
-    
+    float imWidth = image->width();
+    float imHeight = image->height();
+    Rect2D rect2D(Vector2(imWidth-1, imHeight-1));
     if(!m_isMultiThreaded){
-        float imWidth = image->width();
-        float imHeight = image->height();
-        Rect2D rect2D(Vector2(imWidth-1, imHeight-1));
         //Now iterate through all of the pixels
         for(int y(0); y < image->height();++y){
             for(int x(0); x<image->width();++x){
                 Ray ray = cam->worldRay(x+.5f,y+.5f,rect2D);
                 Radiance3 radiance = measureLight(scene, ray, 2);
-                if(radiance.r == 0 && radiance.g == 0 && radiance.b == 0) radiance = colorSky(ray, Point2int32(x,y));
+               // if(radiance.r == 0 && radiance.g == 0 && radiance.b == 0) radiance = colorSky(ray, Point2int32(x,y));
                 image->set(Point2int32(x,y), radiance);
             }
         }
     } else {
-        float imWidth = image->width();
-        float imHeight = image->height();
-        Rect2D rect2D(Vector2(imWidth-1, imHeight-1));
         Thread::runConcurrently(Point2int32(0,0), Point2int32(image->width(), image->height()), [this, scene, cam, image, rect2D](Point2int32 vertex) -> void {
             Ray ray = cam->worldRay(vertex.x +0.5f, vertex.y+0.5f, rect2D);
             Radiance3 radiance = measureLight(scene,ray,2);
-            if(radiance.r == 0 && radiance.g == 0 && radiance.b == 0) radiance = colorSky(ray, vertex);
+            //if(radiance.r == 0 && radiance.g == 0 && radiance.b == 0) radiance = colorSky(ray, vertex);
             image->set(vertex, radiance);
         }); 
     }
