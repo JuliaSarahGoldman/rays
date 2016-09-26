@@ -7,7 +7,18 @@ We took the mathematical algorithms we encountered in class and in the Graphics 
 
 Results
 ================================
-Put pictures here.
+
+![G3D Triangle without indirect light](DirectTriangle.png)
+
+![G3D Cornell Box without indirect light](DirectCornell.png)
+
+![Analytics Spheres with Triangles](AnalyticSpheres.png)
+
+![G3D Cornell Box with 2048 indirect light rays](CornellHD.png)
+
+![G3D Sponza at 640X400 Resolution](Sponza.png)
+
+![Our Unique Scene](OurScene.png)
 
 Run Time
 ================================
@@ -16,13 +27,13 @@ Derive time bound.
 
 Questions
 ================================
-1. The intersection could be derived from the system of equations formed from the equation that describes a ray and the equation that defines a cylinder, $x^2 + y^2 = r^2$. To solve for the top and bottom of the cylinder, we would just use the equation for a 3D ellipsoid with no height, which is $x^2 + y^2 = 1$.
+1. The intersection could be derived from the system of equations formed from the equation that describes a ray and the equation that defines an infinite cylinder, $x^2 + y^2 = r^2$. We could then check if the intersection occured on the side of the cylinder, and 
 2. For a non-analytic surface, one can compute the intersection with the ray using what is essentially a binary search. If at one point the ray is on the outside of the surface and at another it is on the inside, the ray must interest the surface somwhere in between. By continually looking at the halfway point between two points and then determining which side of it teh intersect is on, one can approximate the intersection to a chosen degree.
 3. As seen in question two, finding an intersection is essentially binary searching. Thus, if you root your tree at the center of a surface, this becomes easier.
 
 Evaluation
 ================================
-Evaluate at end.
+At this point we 
 
 Reflections
 ================================
