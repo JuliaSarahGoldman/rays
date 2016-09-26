@@ -268,14 +268,14 @@ void App::makeGUI() {
     } rayTracePane->endRow();
 
     
-    rayTracePane->addNumberBox("Indirect Rays", &m_indirectRaysPPx, "per px", GuiTheme::NO_SLIDER, 0, 2048)->setUnitsSize(100);
+    rayTracePane->addNumberBox("Indirect Rays", &m_indirectRaysPPx, "per px", GuiTheme::LOG_SLIDER, 0, 2048)->setUnitsSize(100);
 
     rayTracePane->addButton("Render", [this](){
         drawMessage("Ray Tracer is loading");
         shared_ptr<G3D::Image> image;
         try{
-            image = Image::create(640, 400, ImageFormat::RGB32F());
-            RayTracer tracer = RayTracer();
+            image = Image::create(200, 190, ImageFormat::RGB32F());
+            RayTracer tracer = RayTracer(m_isMultithreaded, m_indirectRaysPPx, m_hasFixedPrimitives);
             tracer.rayTrace(scene(), scene()->defaultCamera(), image);
             show(image);
             ArticulatedModel::clearCache();
