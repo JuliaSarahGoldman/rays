@@ -151,7 +151,7 @@ bool RayTracer::findSphereIntersection(const Ray& ray, const Point3 center, cons
 }
 
 // find the intersection of a ray to a triangle
-bool RayTracer::findTriangleIntersection(const Ray& ray, const Tri triangle, const CPUVertexArray& vertices, float& t, float b[3], TriTree::Hit hit){
+bool RayTracer::findTriangleIntersection(const Ray& ray, const Tri& triangle, const CPUVertexArray& vertices, float& t, float b[3], TriTree::Hit& hit){
 
     const Point3& P = ray.origin();
     const Vector3& w(ray.direction());
@@ -192,7 +192,7 @@ Radiance3 RayTracer::shade(const Ray& ray, const shared_ptr<Surfel>& surfel, con
         const shared_ptr<Light> light(lights[i]);
         const Point3& Y = light->position().xyz();
 
-        if (isVisible(X,Y)){
+        if (!light->castsShadows() || isVisible(X,Y)){
             const Vector3& w_i = (Y-X).direction();
             Biradiance3& Bi = light->biradiance(X);
 
@@ -203,7 +203,7 @@ Radiance3 RayTracer::shade(const Ray& ray, const shared_ptr<Surfel>& surfel, con
     return L;
 }
 
-bool RayTracer::isVisible(Point3 X, Point3 Y){
+bool RayTracer::isVisible(const Point3& X, const Point3& Y){
     Point3 origin (Y + FLT_EPSILON*(X-Y));
     Vector3 direction = (X-Y).unit();
     Ray newRay(origin, direction);
