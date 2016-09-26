@@ -3,7 +3,7 @@
 
 Algorithm
 ================================
-We took the mathematical algorithms we encountered in class and in the Graphics Codex, and turned them into code. To do that, we had to...
+We took the mathematical algorithms we encountered in class and in the Graphics Codex, and turned them into code. Our main function was [rayTrace](), which iterates through an image pixel by pixel and cast a ray from each pixel. Our [measureLight]() calculates a radiance for a single ray, by checking if it intersects a triangle or spehere, and then shading the resulting surfel if it does intersect. For indirect light, this occurs recursively, and we cast a given number of rays from wherever this one ray hits by calling measureLight from within itself repeatedly and adding the result to the radiance. We get the intersection by using a [findIntersection]() function, which iterates through the triangles (and spheres) in the scene and calls helper methods to check if they are intersected and what their distance of intersection is. We create a surfel for the one that is intersected at the shortest distance. For spheres, we created (findSphereIntersection)[], which uses the quadratic formula to determine if the sphere is intersected. We check the part that is square-roote dto determine if the sphere is missed, and compare (and check for positivity) the two results of the quadratic formula to determine which (if either) should be used. For triangles, we based (findTriangleIntersection)[] on the code from the Graphics Codex. We use the ray's origin and direction and the triangle's normal and vertices, to determine whether an intersection occurs, its distance, whether it is a backface, and what its barocentric coordinates are. Shading is done by (shade)[], also based on Graphics Codex code. It iterates through the lights, and for each one, checks if the lights (isVisible)[] from that light (for the purpose of creating shadows), and if it is computes the direct light by multiplying togther biradiance, finite scattering density, and the dot product of the vector from the light and the normal vector.
 
 Results
 ================================
@@ -16,7 +16,7 @@ Results
 
 ![G3D Cornell Box with 2048 indirect light rays](CornellHD.png)
 
-![G3D Sponza at 640X400 Resolution](Sponza.png)
+![G3D Sponza at 640X400 Resolution. 3,339.496153 seconds (55.7 minutes)](Sponza.png)
 
 ![Our Unique Scene](OurScene.png)
 
@@ -27,9 +27,9 @@ Derive time bound.
 
 Questions
 ================================
-1. The intersection could be derived from the system of equations formed from the equation that describes a ray and the equation that defines an infinite cylinder, $x^2 + y^2 = r^2$. We could then check if the intersection occured on the side of the cylinder, and 
-2. For a non-analytic surface, one can compute the intersection with the ray using what is essentially a binary search. If at one point the ray is on the outside of the surface and at another it is on the inside, the ray must interest the surface somwhere in between. By continually looking at the halfway point between two points and then determining which side of it teh intersect is on, one can approximate the intersection to a chosen degree.
-3. As seen in question two, finding an intersection is essentially binary searching. Thus, if you root your tree at the center of a surface, this becomes easier.
+1. The intersection could be derived from the system of equations formed from the equation that describes a ray and the equation that defines an infinite cylinder, plus the two infinte planes to represent the top and bottom of the cylinder. Check if the ray intersects the infite cylinder (at radius distance from the center line), and then check if it intersected within the desired height. For the top and bottom, check if the ray intersected an infinite plane at the top or bottom within a circle of the given radius from the appropriate side.
+2. For a non-analytic surface, one can compute the intersection with the ray using what is essentially a binary search. If at one point the ray is on the outside of the surface and at another it is on the inside, the ray must interest the surface somwhere in between. By continually looking at the halfway point between two points and then determining which side of it the intersect is on, one can approximate the intersection to a chosen degree.
+3. One can utilize a binary tree to sort one's triangles by distance from the camera. Then, one can test the triangles to see if they intersect a ray in order, from closest to furthest. The first triangle the ray intersects with is the closest, so you can stop checking triangles once one is hit. If the camera moves, the triangles need to be re-sorted. 
 
 Evaluation
 ================================
@@ -37,7 +37,18 @@ At this point we
 
 Reflections
 ================================
-Reflect near end.
+-How to recursively calculate an integral.
+-How shadows are created.
+-How indirect light is calculated.
+-How to deal with shared pointers.
+-How to make lamda functions in C++.
+-How to calculate an intersect.
+-How to work with rays.
+-A deeper understanding of vectors.
+-Always read the book
+-Look for helpful existing functions
+-How to do multi-threading in C++.
+-
 
 
 Workflow
@@ -46,19 +57,22 @@ Workflow
 Task | Description | Planned Time (h) | Actual Time (h)
 -----|-------------|------------------|----------------
 Report Draft | Markdeep document with some simple answers. | .2 | .2|
-GUI draft | GUI that appears but does nothing. | .2 |  |
-findIntersection draft | function that gives some surfel | .1 |  |
-measureLight draft | copy code from class | .1 |  |
-rayTrace draft | copy code from class | .1 |  |
-multithreading Draft | start implementing multithreading capabilities | .2 | |
-findIntersection MVP | implement intersection algorithm | 1 | |
-measureLight MVP | implement recursive algorithm | 1 | |
-rayTrace MVP | call measure light on each pixel | .2 | |
-GUI MVP | GUI calls on rayTrace algorithm | .3 | |
-MultiThreading MVP | implement multithreading | .5 | |
-Shading Draft | Compute direct illumination | .3 | |
-Shading MVP | Compute Shadows | .3 | |
+GUI draft | GUI that appears but does nothing. | .2 | .2 |
+findIntersection draft | function that gives some surfel | .1 | .2 |
+measureLight draft | copy code from class | .1 | .2 |
+rayTrace draft | copy code from class | .1 | .2 |
+multithreading Draft | start implementing multithreading capabilities | .2 | .2|
+findIntersection MVP | implement intersection algorithm | 1 |1.2 |
+measureLight MVP | implement recursive algorithm | 1 |1 |
+rayTrace MVP | call measure light on each pixel | .2 |.2 |
+GUI MVP | GUI calls on rayTrace algorithm | .3 | .1|
+MultiThreading MVP | implement multithreading | .5 |.5 |
+Shading Draft | Compute direct illumination | .3 | 4|
+Shading MVP | Compute Shadows | .3 | 1|
 Polishing | Make everything better| 4 | |
+
+MVP: Julia: 8 hours,  Jose: 8.5 hours
+Polishing: 4 hours plus work today
 
 
 <!-- Markdeep: -->

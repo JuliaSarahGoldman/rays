@@ -12,7 +12,7 @@ void RayTracer::rayTrace(const shared_ptr<Scene>& scene, const shared_ptr<Camera
             for(int x(0); x<image->width();++x){
                 Ray ray = cam->worldRay(x+.5f,y+.5f,rect2D);
                 Radiance3 radiance = measureLight(scene, ray, 2);
-               // if(radiance.r == 0 && radiance.g == 0 && radiance.b == 0) radiance = colorSky(ray, Point2int32(x,y));
+                if(radiance.r == 0 && radiance.g == 0 && radiance.b == 0) radiance = colorSky(ray, Point2int32(x,y));
                 image->set(Point2int32(x,y), radiance);
             }
         }
@@ -20,7 +20,7 @@ void RayTracer::rayTrace(const shared_ptr<Scene>& scene, const shared_ptr<Camera
         Thread::runConcurrently(Point2int32(0,0), Point2int32(image->width(), image->height()), [this, scene, cam, image, rect2D](Point2int32 vertex) -> void {
             Ray ray = cam->worldRay(vertex.x +0.5f, vertex.y+0.5f, rect2D);
             Radiance3 radiance = measureLight(scene,ray,2);
-            //if(radiance.r == 0 && radiance.g == 0 && radiance.b == 0) radiance = colorSky(ray, vertex);
+            if(radiance.r == 0 && radiance.g == 0 && radiance.b == 0) radiance = colorSky(ray, vertex);
             image->set(vertex, radiance);
         }); 
     }
@@ -55,7 +55,8 @@ Radiance3 RayTracer::measureLight(const shared_ptr<Scene>& scene, const Ray& ray
     for (int i(0); i < m_numRays; ++i){
         Point3 check = surfel->position;
         Ray otherRay(surfel->position + FLT_EPSILON*surfel->geometricNormal, Vector3::hemiRandom(surfel->shadingNormal));
-        returnRadiance += (measureLight(scene, otherRay, --numScatters)/m_numRays);
+        int num = numScatters - 1;
+        returnRadiance += (measureLight(scene, otherRay, num)/m_numRays);
     }
     return returnRadiance;
     
