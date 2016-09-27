@@ -17,7 +17,7 @@ void RayTracer::rayTrace(const shared_ptr<Scene>& scene, const shared_ptr<Camera
             }
         }
     } else {
-        Thread::runConcurrently(Point2int32(0,0), Point2int32(image->width(), image->height()), [this, scene, cam, image, rect2D](Point2int32 vertex) -> void {
+        Thread::runConcurrently(Point2int32(0,0), Point2int32(image->width(), image->height()), [this, scene, cam, image, rect2D](Point2int32& vertex) -> void {
             Ray ray = cam->worldRay(vertex.x +0.5f, vertex.y+0.5f, rect2D);
             Radiance3 radiance = measureLight(scene,ray,2);
             if(radiance.r == 0 && radiance.g == 0 && radiance.b == 0) radiance = colorSky(ray, vertex);
@@ -40,7 +40,7 @@ Radiance3 RayTracer::colorSky(const Ray& ray, const Point2int32& location){
 // Will calculate the radiance for a single ray of light by finding the intersection and recursively 
 // scattering light
 Radiance3 RayTracer::measureLight(const shared_ptr<Scene>& scene, const Ray& ray, int numScatters){
-    if (numScatters <= 0){
+    if (numScatters == 0){
         return Radiance3(0,0,0);
     }
         //shared_ptr<Surfel> surfel = triangles.intersectRay(ray);
@@ -98,20 +98,23 @@ bool RayTracer::findIntersection(shared_ptr<Surfel>& surfel, const Ray& ray){
     bool isCircleCloser = false;
     
     if (m_hasFixedPrimitives){
-        Point3 center(0,1,-.5);
-        float radius = .4f;
-        bool intersects = findSphereIntersection(ray, center, radius, t);
-        
-        if(intersects){
-            if (t<min){ 
-                isCircleCloser = true;
-                min = t;
-                auto surf = std::make_shared<UniversalSurfel>();
-                surf->name = "analytical";
-                surf->position = Point3(ray.origin() + t*ray.direction());
-                surf->lambertianReflectivity = Color3(1.46f,.5f,1.47f);
-                surf->shadingNormal = (surf->position-center).unit();
-                surfel = surf;
+        Point3 center(-2.5, 1.5, -.5f);
+        float radius(.3);
+        for(int i(0); i < 2; ++i){
+            center +=  i*Vector3(1,0,0);
+            bool intersects = findSphereIntersection(ray, center + Vector3(2,0,0), radius, t);
+            if(intersects){
+                if (t<min){ 
+                    isCircleCloser = true;
+                    min = t;
+                    auto surf = std::make_shared<UniversalSurfel>();
+                    surf->name = "analytical";
+                    surf->position = Point3(ray.origin() + t*ray.direction());
+                    surf->lambertianReflectivity = Color3(1.46f,.5f,1.47f);
+                    surf->shadingNormal = (surf->position-center).unit();
+                    surf->emission = Radiance3(0.0f,0.0f,0.0f);
+                    surfel = surf;
+                }
             }
         }
     }
@@ -187,7 +190,6 @@ Radiance3 RayTracer::shade(const Ray& ray, const shared_ptr<Surfel>& surfel, con
     const Point3& X = surfel->position;
     const Vector3& n = surfel->shadingNormal;
     Array<shared_ptr<Light>> lights = scene->lightingEnvironment().lightArray;
-
     for(int i = 0; i < lights.size(); ++i) {
         const shared_ptr<Light> light(lights[i]);
         const Point3& Y = light->position().xyz();

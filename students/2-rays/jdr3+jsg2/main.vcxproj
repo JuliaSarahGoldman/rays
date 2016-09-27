@@ -97,11 +97,13 @@
     <ResourceCompile Include="resources.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="data-files\CornellBox.Scene.Any" />
     <None Include="data-files\cup.Scene.Any" />
     <None Include="data-files\cylinder.Scene.Any" />
     <None Include="data-files\demo.Scene.Any" />
     <None Include="data-files\heightfield.Scene.Any" />
     <None Include="data-files\test.Scene.Any" />
+    <None Include="data-files\triangles.Scene.Any" />
     <None Include="data-files\whiteCube.Scene.Any" />
     <None Include="doc-files\report.md.html" />
     <None Include="Doxyfile" />

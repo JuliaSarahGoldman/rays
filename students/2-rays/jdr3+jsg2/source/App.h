@@ -24,7 +24,7 @@ protected:
     void makeGUI();
 
 public:
-    
+    void makeTriangles(int numTris);
     App(const GApp::Settings& settings = GApp::Settings());
 
     void makeCylinder(float radius, float height, int numVertices);
