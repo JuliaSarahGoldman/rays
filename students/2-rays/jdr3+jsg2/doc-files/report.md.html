@@ -16,13 +16,14 @@ Results
 
 ![Analytics Spheres with Triangles with indirect Light](AnalyticSpheres2.png)
 
-![G3D Cornell Box with 2048 indirect light rays](CornellHD.png)
 
 ![G3D Sponza at 640X400 Resolution. 3,339.496153 seconds (55.7 minutes)](Sponza.png)
 
 ![Our Unique Scene](WonkyBox.png)
 
 ![Our Unique Scene with Indirect Lighting](WonkyBox2.png)
+
+Unfortunately, due to a bug that we were unable to detect in our code, we were unable to generate an image with 2048 indirect rays for the Cornell Box. We believe that it may lie in the way we multi thread our program. Although we were able to generate pictures with 100 or fewer rays ina reasonable amount of time, after that the time needed grew huge, even though it ought to have been linear. Despite running our program for 172 minutes, we were unable to generate a Cornell Box with 2048 rays.
 
 Run Time
 ================================
@@ -47,7 +48,7 @@ Again, we see a linearly performance decrease as the number of lights increase.
 
 Finally, the number of indirect rays decreases in performance linearly until it hits 100, at which point it increases drastically.
 
-Given all of the above, we then have a time bound of O((num(Triangles)*num(pixels)*num(Lights))/num(Cores)). This does not provide a good model when multiple threads write to the same memory, since it may cause errors. It provides a good model when debating changing any of the factors in the scene.
+Given all of the above, we then have a time bound of O((num(Triangles)*num(pixels)*num(Lights))/num(Cores)). This does not provide a good model when any of its factors are sufficiently small such that start up time plays a big role in the amount of time the process takes. 
 
 Questions
 ================================
@@ -57,7 +58,11 @@ Questions
 
 Evaluation
 ================================
-We deserve a
+We deserve a B+/A-.
+Code Style: We believe our code is pretty straightforward. We make sure that RayTracer is initialized with the correct state and ensure that we pass by reference wherever possible. Barring a few mistakes, we think we did well.
+Workflow: We spent too much time correctimg small bugs, trying to get one thing perfect before we were willing to move on to something else. We need to think more in terms of the whole rather than in perfecting small parts. We should have kept better track of our bugs in our journal and actually written more.
+Report Quality: We believe that our report is reasonably well organized. It could be better if we worked on it more from the beginning and continued to update it as we worked. 
+Report Depth and Correctness: We believe most of our answers are correct. We could have answered some of the questions in more depth and definitely triple checked some of our conclusions.
 
 Reflections
 ================================
@@ -111,7 +116,7 @@ GUI MVP | GUI calls on rayTrace algorithm | .3 | .1|
 MultiThreading MVP | implement multithreading | .5 |.5 |
 Shading Draft | Compute direct illumination | .3 | 4|
 Shading MVP | Compute Shadows | .3 | 1|
-Polishing | Make everything better| 4 | |
+Polishing | Make everything better| 4 | 9|
 
 MVP: Julia: 8 hours,  Jose: 8.5 hours
 Polishing: 9 hours polishing
