@@ -221,6 +221,7 @@ void App::makeGlass(int slices){
 // automatically caught.
 void App::onInit() {
     GApp::onInit();
+    makeTriangles(1000);
     makeFountainPiece();
     makeSplash();
     makeTree();
@@ -243,6 +244,20 @@ void App::onInit() {
         );
 }
 
+void App::makeTriangles(int numTris){
+    TextOutput file("../data-files/model/triangles.off");
+    file.printf(STR(OFF\n%d %d 1\n), 3*numTris, numTris);
+    for(int i(0); i < numTris;++i){
+        file.printf(STR(%f %f %f\n), 0, 0, i);
+        file.printf(STR(%f %f %f\n), 1.0f, 0, i);
+        file.printf(STR(%f %f %f\n), 0.5f, 0, i+0.5f);
+    }
+    for(int i(0); i < numTris; ++i){
+        file.printf(STR(3 %d %d %d\n), 3*i+2, 3*i+1, 3*i);
+    }
+    file.printf(STR(\n));
+    file.commit();
+}
 
 void App::makeGUI() {
     // Initialize the developer HUD
@@ -275,15 +290,14 @@ void App::makeGUI() {
         try{
             if(!list->selectedIndex()) image = Image::create(1, 1, ImageFormat::RGB32F());
             else if (list->selectedIndex() == 1) image = Image::create(320,200, ImageFormat::RGB32F());
-            else image = Image::create(640,400, ImageFormat::RGB32F());
-            
+            else image = Image::create(640,420, ImageFormat::RGB32F());
             RayTracer tracer = RayTracer(scene(), m_isMultithreaded, m_indirectRaysPPx, m_hasFixedPrimitives);
             Stopwatch watch("watch");
             watch.tick();
             tracer.rayTrace(scene(), activeCamera(), image);
             watch.tock();
             debugPrintf(String(std::to_string(watch.smoothElapsedTime()) + " seconds").c_str());
-            show(image, String(std::to_string(watch.smoothElapsedTime()) + " seconds"));
+            show(image, String(std::to_string(watch.smoothElapsedTime()) + " seconds + Numcores = " + std::to_string(G3D::System::numCores())));
             ArticulatedModel::clearCache();
             
             //loadScene(developerWindow->sceneEditorWindow->selectedSceneName());
@@ -313,7 +327,6 @@ void App::makeGUI() {
     debugWindow->pack();
     debugWindow->setRect(Rect2D::xywh(0, 0, (float)window()->width(), debugWindow->rect().height()));
 }
-
 
 // This default implementation is a direct copy of GApp::onGraphics3D to make it easy
 // for you to modify. If you aren't changing the hardware rendering strategy, you can
